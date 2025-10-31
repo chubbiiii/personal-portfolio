@@ -1,0 +1,90 @@
+@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@400;600&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+body {
+  font-family: "Prompt", sans-serif !important;
+  color: #000;
+  font-size: 16px;
+  line-height: 1.2;
+}
+body.backdrop {
+  position: relative;
+  overflow: hidden;
+}
+body.backdrop::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 98;
+  top: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+body .displayMode {
+  width: 100%;
+  min-height: 100dvh;
+  background-color: #fff;
+  transition: 0.3s ease all;
+}
+body .displayMode.darkMode {
+  background-color: #000;
+  color: #fff;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  background-color: transparent;
+  border: none;
+  outline: none !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+button {
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5, p {
+  margin: 0;
+}
+
+.d-flex-default {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: row;
+}
+
+.d-flex-a-center {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: row;
+}
+
+.d-flex-j-center {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: row;
+}
+
+.d-flex-all-center {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+}
+
+.nowrap {
+  white-space: nowrap;
+}/*# sourceMappingURL=globals.css.map */
