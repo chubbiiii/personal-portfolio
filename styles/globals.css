@@ -35,13 +35,17 @@ body .displayMode.darkMode {
 
 a,
 button,
-input,
-select,
-textarea {
+select {
   background-color: transparent;
   border: none;
   outline: none !important;
   text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+input,
+textarea {
+  outline: none !important;
   box-shadow: none !important;
 }
 
@@ -87,4 +91,28 @@ h1, h2, h3, h4, h5, p {
 
 .nowrap {
   white-space: nowrap;
+}
+
+.swiper-portfolio {
+  height: auto !important;
+}
+
+.swiper-portfolio .swiper-wrapper {
+  display: flex !important;
+  align-items: stretch !important;
+}
+
+.swiper-portfolio .swiper-slide {
+  height: auto !important;
+  display: flex !important;
+  transition: opacity 0.3s ease !important;
+}
+
+.swiper-portfolio .swiper-slide > * {
+  width: 100%;
+  height: 100%;
+}
+
+.swiper-portfolio .swiper-slide:not(.swiper-slide-fully-visible) {
+  opacity: 0.3 !important;
 }/*# sourceMappingURL=globals.css.map */
