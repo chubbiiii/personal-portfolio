@@ -1,0 +1,98 @@
+{
+  "avatar": {
+    "avatarImage": "/images/me.jpg",
+    "socialLinks": [
+      {
+        "icon": "/images/github.png",
+        "url": "https://github.com/chubbiiii?tab=repositories"
+      },
+      {
+        "icon": "/images/instagram.png",
+        "url": "https://www.instagram.com/sspsstoei/?igsh=cDc1djB3MDZ3eTF1&utm_source=qr#"
+      },
+      {
+        "icon": "/images/facebook.png",
+        "url": "https://www.facebook.com/share/1DZiBmAtkb/?mibextid=wwXIfr"
+      }
+    ],
+    "buttonText": "ส่งข้อความ",
+    "buttonLink": "#"
+  },
+  "welcome": {
+    "greeting": "สวัสดีครับ",
+    "title": "ผมเต้ยคนที่ชอบทำเว็บให้ออกมาดูดีและใช้งานง่าย",
+    "description": "ผมชอบการผสมผสานระหว่างดีไซน์และเทคโนโลยี เพื่อให้เว็บไซต์ไม่ใช่แค่สวย แต่ยังมีเอกลักษณ์และตอบโจทย์ผู้ใช้งานจริง ทุกโปรเจ็กต์คือโอกาสในการเรียนรู้สิ่งใหม่ ๆ และพัฒนาให้ดียิ่งขึ้น"
+  },
+  "stats": {
+    "years": "5+",
+    "projects": "10+",
+    "clients": "0"
+  },
+  "about": {
+    "label": "เกี่ยวกับฉัน",
+    "title": "เปลี่ยนโค้ดให้กลายเป็นประสบการณ์ที่ใช้งานได้จริง",
+    "description": "Frontend Developer ที่หลงใหลในการสร้างเว็บไซต์ที่เรียบง่ายและใช้งานได้จริง\nชอบออกแบบประสบการณ์ผู้ใช้ให้ลื่นไหล ด้วยเทคโนโลยีอย่าง Next.js, React และ Tailwind CSS\nให้ความสำคัญกับความเร็ว ความละเอียด และดีไซน์ที่ตอบโจทย์ เพื่อให้ทุกโปรเจ็กต์ออกมาดูดีและใช้งานได้อย่างราบรื่น"
+  },
+  "career": {
+    "label": "ประสบการณ์การทำงาน",
+    "title": "การศึกษาและประสบการณ์ทำงาน",
+    "items": [
+      {
+        "period": "พฤษจิกายน 2563 - ปัจจุบัน",
+        "title": "Front End Developer",
+        "description": "ประสบการณ์พัฒนาเว็บไซต์และเว็บแอปพลิเคชัน ด้วยเทคโนโลยี PHP, Angular, JavaScript, CSS, SCSS, Tailwind CSS และ Next.js รองรับทุกอุปกรณ์ และทำงานร่วมกับทีมเพื่อพัฒนาระบบที่สมบูรณ์มุ่งเน้นการสร้างเว็บไซต์ที่มีประสิทธิภาพ และพร้อมต่อยอดพัฒนาต่อในอนาคต"
+      }
+    ]
+  },
+  "services": {
+    "label": "ความเชี่ยวชาญ",
+    "title": "ความเชี่ยวชาญและบริการของฉัน",
+    "items": [
+      {
+        "title": "Frontend Development",
+        "projects": "20+ PROJECTS"
+      },
+      {
+        "title": "Responsive Web Design",
+        "projects": "20+ PROJECTS"
+      },
+      {
+        "title": "CSS/SCSS/Tailwind CSS",
+        "projects": "20+ PROJECTS"
+      }
+    ]
+  },
+  "skills": {
+    "label": "ทักษะของฉัน",
+    "title": "สิ่งที่ถนัดและความรู้",
+    "items": [
+      {
+        "icon": "/images/vscode.png",
+        "alt": "vscode"
+      },
+      {
+        "icon": "/images/github-sq.png",
+        "alt": "github-sq"
+      },
+      {
+        "icon": "/images/photoshop.png",
+        "alt": "photoshop"
+      },
+      {
+        "icon": "/images/illustrator.png",
+        "alt": "illustrator"
+      },
+      {
+        "icon": "/images/chatgpt.png",
+        "alt": "chatgpt"
+      }
+    ]
+  },
+  "contact": {
+    "label": "ติดต่อ",
+    "title": "ส่งข้อความมาหาฉันได้นะ"
+  },
+  "footer": {
+    "text": "© 2025 Jonathan. All rights reserved."
+  }
+}

@@ -14,10 +14,63 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import fs from 'fs';
+import path from 'path';
 
-export default function HomePage() {
+export async function getServerSideProps(context) {
+  const { req } = context;
+
+  // ตรวจสอบการ login โดยดูจาก user cookie
+  try {
+    const cookies = req.headers.cookie || '';
+    const cookieArray = cookies.split(';').map(c => c.trim());
+    const userCookie = cookieArray.find(c => c.startsWith('user='));
+    
+    // ถ้ายังไม่ได้ login ให้ redirect ไปหน้า login
+    if (!userCookie) {
+      return {
+        redirect: {
+          destination: '/admin/login',
+          permanent: false,
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error reading cookie:', error);
+    // ถ้าเกิด error ในการอ่าน cookie ให้ redirect ไป login
+    return {
+      redirect: {
+        destination: '/admin/login',
+        permanent: false,
+      },
+    };
+  }
+
+  // ถ้า login แล้ว ให้โหลด content
+  try {
+    const filePath = path.join(process.cwd(), 'data', 'content.json');
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    const content = JSON.parse(fileContents);
+
+    return {
+      props: {
+        content: content
+      }
+    };
+  } catch (error) {
+    console.error('Error reading content:', error);
+    return {
+      props: {
+        content: null
+      }
+    };
+  }
+}
+
+export default function HomePage({ content }) {
   const appContext = useContext(AppContext);
   const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
@@ -30,6 +83,8 @@ export default function HomePage() {
         top: offsetPosition,
         behavior: "smooth",
       });
+      // ปิดเมนูมือถือหลังจากคลิก
+      setIsMobileMenuOpen(false);
     }
   };
 
@@ -41,18 +96,32 @@ export default function HomePage() {
     });
   }, []);
 
+  // ป้องกันการเลื่อนหน้าตอนเปิดเมนูมือถือ
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <div className="landingPage bg-[#1E1E1E] h-full">
       <header className="fixed top-0 left-0 right-0 bg-[#1E1E1E] bg-opacity-90 backdrop-blur-md z-50 border-b border-[#999999] border-opacity-20">
-        <nav className="container mx-auto max-w-[1200px] px-[50px] py-[20px] flex justify-between items-center">
+        <nav className="container mx-auto max-w-[1200px] px-[20px] py-[20px] flex justify-between items-center relative z-50 ">
           <div className="text-white text-[24px] font-bold">Portfolio</div>
-          <ul className="flex gap-[40px]">
+          
+          {/* Desktop Menu */}
+          <ul className="hidden md:flex gap-[20px] c992:gap-[40px]">
             <li>
               <button
                 onClick={() => scrollToSection("welcome")}
                 className="text-white text-[16px] font-normal hover:text-[#2EEBAA] transition-colors"
               >
-                Home
+                หน้าแรก
               </button>
             </li>
             <li>
@@ -60,7 +129,7 @@ export default function HomePage() {
                 onClick={() => scrollToSection("about")}
                 className="text-white text-[16px] font-normal hover:text-[#2EEBAA] transition-colors"
               >
-                About
+                เกี่ยวกับฉัน
               </button>
             </li>
             <li>
@@ -68,7 +137,7 @@ export default function HomePage() {
                 onClick={() => scrollToSection("career")}
                 className="text-white text-[16px] font-normal hover:text-[#2EEBAA] transition-colors"
               >
-                Career
+                การทำงาน
               </button>
             </li>
             <li>
@@ -76,337 +145,464 @@ export default function HomePage() {
                 onClick={() => scrollToSection("services")}
                 className="text-white text-[16px] font-normal hover:text-[#2EEBAA] transition-colors"
               >
-                Services
+                เชี่ยวชาญ
               </button>
             </li>
-            <li>
+            {/* <li>
               <button
                 onClick={() => scrollToSection("portfolio")}
                 className="text-white text-[16px] font-normal hover:text-[#2EEBAA] transition-colors"
               >
                 Portfolio
               </button>
-            </li>
+            </li> */}
             <li>
               <button
                 onClick={() => scrollToSection("contact")}
                 className="text-white text-[16px] font-normal hover:text-[#2EEBAA] transition-colors"
               >
-                Contact
+                ติดต่อ
               </button>
             </li>
           </ul>
+
+          {/* Hamburger Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden flex flex-col justify-center items-center w-[30px] h-[30px] gap-[6px] focus:outline-none"
+            aria-label="Toggle menu"
+          >
+            <span
+              className={`block w-full h-[2px] bg-white transition-all duration-300 ${
+                isMobileMenuOpen ? "rotate-45 translate-y-[8px]" : ""
+              }`}
+            />
+            <span
+              className={`block w-full h-[2px] bg-white transition-all duration-300 ${
+                isMobileMenuOpen ? "opacity-0" : ""
+              }`}
+            />
+            <span
+              className={`block w-full h-[2px] bg-white transition-all duration-300 ${
+                isMobileMenuOpen ? "-rotate-45 -translate-y-[8px]" : ""
+              }`}
+            />
+          </button>
         </nav>
+
+        {/* Mobile Menu Overlay */}
+        <div
+          className={`fixed top-0 left-0 right-0 bottom-0 bg-[#1E1E1E] bg-opacity-95 backdrop-blur-md z-40 md:hidden transition-transform duration-300 ${
+            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="container mx-auto max-w-[1200px] px-[20px] pt-[100px] bg-[#1E1E1E] h-[100dvh]">
+            <ul className="flex flex-col gap-[15px] c768:gap-[30px]">
+              <li>
+                <button
+                  onClick={() => scrollToSection("welcome")}
+                  className="text-white text-[20px] font-normal hover:text-[#2EEBAA] transition-colors w-full text-left py-[10px]"
+                >
+                  เกี่ยวกับ
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => scrollToSection("about")}
+                  className="text-white text-[20px] font-normal hover:text-[#2EEBAA] transition-colors w-full text-left py-[10px]"
+                >
+                  เกี่ยวกับฉัน
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => scrollToSection("career")}
+                  className="text-white text-[20px] font-normal hover:text-[#2EEBAA] transition-colors w-full text-left py-[10px]"
+                >
+                  การทำงาน
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => scrollToSection("services")}
+                  className="text-white text-[20px] font-normal hover:text-[#2EEBAA] transition-colors w-full text-left py-[10px]"
+                >
+                  เชี่ยวชาญ
+                </button>
+              </li>
+              {/* <li>
+                <button
+                  onClick={() => scrollToSection("portfolio")}
+                  className="text-white text-[20px] font-normal hover:text-[#2EEBAA] transition-colors w-full text-left py-[10px]"
+                >
+                  Portfolio
+                </button>
+              </li> */}
+              <li>
+                <button
+                  onClick={() => scrollToSection("contact")}
+                  className="text-white text-[20px] font-normal hover:text-[#2EEBAA] transition-colors w-full text-left py-[10px]"
+                >
+                  ติดต่อ
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
       </header>
-      <div className="px-[50px] py-[100px] pb-[0]">
+      <div className="px-[20px] c768:px-[50px] py-[100px] pb-[0]">
         <div className="container mx-auto max-w-[1200px]">
-          <div className=" flex gap-[70px]">
-            <div className="box-avatar flex flex-col items-center w-[40%]">
-              <div className="fixed top-[100px]">
+          <div className="flex-col c1200:flex-row c1200:flex c1200:gap-[70px]">
+            <div className="box-avatar flex flex-col items-center c1200:w-[40%] w-full mb-[50px] c1200:mb-[0]">
+              <div className="relative c1200:fixed c1200:top-[100px]">
                 <Image
-                  src="/images/avatar.png"
+                  src={content?.avatar?.avatarImage || "/images/avatar.png"}
                   alt="avatar"
                   width={360}
                   height={360}
                   quality={100}
                 />
-                <div className="flex flex-wrap justify-between items-center my-[20px] w-[70%] m-auto">
-                  <button>
-                    <Image
-                      src="/images/social-icon.png"
-                      alt="social-icon"
-                      width={24}
-                      height={24}
-                    />
-                  </button>
-                  <button>
-                    <Image
-                      src="/images/social-icon.png"
-                      alt="social-icon"
-                      width={24}
-                      height={24}
-                    />
-                  </button>
-                  <button>
-                    <Image
-                      src="/images/social-icon.png"
-                      alt="social-icon"
-                      width={24}
-                      height={24}
-                    />
-                  </button>
-                  <button>
-                    <Image
-                      src="/images/social-icon.png"
-                      alt="social-icon"
-                      width={24}
-                      height={24}
-                    />
-                  </button>
+                <div className="flex flex-wrap justify-between items-center my-[20px] w-[40%] m-auto">
+                  {content?.avatar?.socialLinks ? (
+                    content.avatar.socialLinks.map((link, index) => (
+                      <a
+                        key={index}
+                        href={link.url || "#"}
+                        target={link.url?.startsWith('http') ? '_blank' : '_self'}
+                        rel={link.url?.startsWith('http') ? 'noopener noreferrer' : ''}
+                      >
+                        <Image
+                          src={link.icon || "/images/social-icon.png"}
+                          alt={`social-icon-${index + 1}`}
+                          width={24}
+                          height={24}
+                        />
+                      </a>
+                    ))
+                  ) : (
+                    <>
+                      <button>
+                        <Image
+                          src="/images/social-icon.png"
+                          alt="social-icon"
+                          width={24}
+                          height={24}
+                        />
+                      </button>
+                      <button>
+                        <Image
+                          src="/images/social-icon.png"
+                          alt="social-icon"
+                          width={24}
+                          height={24}
+                        />
+                      </button>
+                      <button>
+                        <Image
+                          src="/images/social-icon.png"
+                          alt="social-icon"
+                          width={24}
+                          height={24}
+                        />
+                      </button>
+                      <button>
+                        <Image
+                          src="/images/social-icon.png"
+                          alt="social-icon"
+                          width={24}
+                          height={24}
+                        />
+                      </button>
+                    </>
+                  )}
                 </div>
-                <button className="w-full min-h-[50px] transition-all duration-300 hover:border-[#2EEBAA] hover:text-[#2EEBAA] border-[#999999] border-[1px] border-solid text-white rounded-[8px]">
-                  Hire Me
+                <button
+                  // href={content?.avatar?.buttonLink || "#"}
+                  onClick={() => scrollToSection("contact")}
+                  className="w-full min-h-[50px] transition-all duration-300 hover:border-[#2EEBAA] hover:text-[#2EEBAA] border-[#999999] border-[1px] border-solid text-white rounded-[8px] flex items-center justify-center"
+                >
+                  {content?.avatar?.buttonText || "Hire Me"}
                 </button>
               </div>
             </div>
-            <div className="box-title w-[80%] overflow-hidden">
+            <div className="box-title c1200:w-[80%] w-full overflow-hidden">
               <div className="box-welcome" id="welcome">
                 <p className="text-[#2EEBAA] text-[18px] font-normal mb-[10px]">
-                  Hello
+                  {content?.welcome?.greeting || "Hello"}
                 </p>
-                <h1 className="text-white text-[56px] font-medium mb-[20px]">
-                  I'm Jonathan, UX/UI <br />
-                  Designer and no-code <br />
-                  Developer
+                <h1 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[20px]">
+                  {content?.welcome?.title ? (
+                    content.welcome.title.split('\n').map((line, i) => (
+                      <React.Fragment key={i}>
+                        {line}
+                        {i < content.welcome.title.split('\n').length - 1 && <br />}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    <>
+                      I'm Jonathan, UX/UI <br />
+                      Designer and no-code <br />
+                      Developer
+                    </>
+                  )}
                 </h1>
                 <p className="text-[#999999] text-[18px] font-normal mb-[30px]">
-                  I craft elegant solutions to complex problems, and I gives me
-                  <br />
-                  pleasure. I'm living in Berlin with my loving wife and cute
-                  daughter.
+                  {content?.welcome?.description ? (
+                    content.welcome.description.split('\n').map((line, i) => (
+                      <React.Fragment key={i}>
+                        {line}
+                        {i < content.welcome.description.split('\n').length - 1 && <br />}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    <>
+                      I craft elegant solutions to complex problems, and I gives me
+                      <br />
+                      pleasure. I'm living in Berlin with my loving wife and cute
+                      daughter.
+                    </>
+                  )}
                 </p>
               </div>
-              <div className="box-score my-[150px]">
-                <div className="box-score-item flex flex-wrap items-center w-full">
-                  <div className="box-score-item-title text-center w-[33.33%]">
-                    <h2 className="text-[#2EEBAA] text-[48px] font-medium">
-                      9+
+              <div className="box-score my-[100px] c1200:my-[150px]">
+                <div className="flex-col gap-[50px] c768:gap-[0] c768:flex-row box-score-item flex flex-wrap items-center justify-center w-full">
+                  <div className="box-score-item-title text-center w-full c768:w-[33.33%]">
+                    <h2 className="text-[#2EEBAA] text-[58px] c768:text-[48px] font-medium">
+                      {content?.stats?.years || "9+"}
                     </h2>
                     <p className="text-[#999999] text-[18px] font-normal">
                       Years Experience
                     </p>
                   </div>
-                  <div className="box-score-item-title text-center w-[33.33%]">
-                    <h2 className="text-[#2EEBAA] text-[48px] font-medium">
-                      67+
+                  <div className="box-score-item-title text-center w-full c768:w-[33.33%]">
+                    <h2 className="text-[#2EEBAA] text-[58px] c768:text-[48px] font-medium">
+                      {content?.stats?.projects || "67+"}
                     </h2>
                     <p className="text-[#999999] text-[18px] font-normal">
                       Completed Project
                     </p>
                   </div>
-                  <div className="box-score-item-title text-center w-[33.33%]">
-                    <h2 className="text-[#2EEBAA] text-[48px] font-medium">
-                      21+
-                    </h2>
-                    <p className="text-[#999999] text-[18px] font-normal">
-                      Happy Client
-                    </p>
-                  </div>
+                  {content?.stats?.clients!=="0" && (
+                    <div className="box-score-item-title text-center w-full c768:w-[33.33%]">
+                      <h2 className="text-[#2EEBAA] text-[58px] c768:text-[48px] font-medium">
+                        {content?.stats?.clients || "21+"}
+                      </h2>
+                      <p className="text-[#999999] text-[18px] font-normal">
+                        Happy Client
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="box-about my-[150px]" id="about">
+              <div className="box-about my-[100px] c1200:my-[150px]" id="about">
                 <p className="text-[#2EEBAA] text-[18px] font-normal mb-[10px]">
-                  About
+                  {content?.about?.label || "About"}
                 </p>
-                <h2 className="text-white text-[56px] font-medium mb-[20px]">
-                  Every great design begin with an even better story
+                <h2 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[20px]">
+                  {content?.about?.title || "Every great design begin with an even better story"}
                 </h2>
                 <p className="text-[#999999] text-[18px] font-normal mb-[30px]">
-                  Since beginning my journey as a freelance designer nearly 8
-                  years ago, I've done remote work for agencies, consulted for
-                  startups, and collaborated with talented people to create
-                  digital products for both business and consumer use. I'm
-                  quietly confident, naturally curious, and perpetually working
-                  on improving my chopsone design problem at a time.
+                  {content?.about?.description || "Since beginning my journey as a freelance designer nearly 8 years ago, I've done remote work for agencies, consulted for startups, and collaborated with talented people to create digital products for both business and consumer use. I'm quietly confident, naturally curious, and perpetually working on improving my chopsone design problem at a time."}
                 </p>
               </div>
-              <div className="box-career my-[150px]" id="career">
+              <div className="box-career my-[100px] c1200:my-[150px]" id="career">
                 <p className="text-[#2EEBAA] text-[18px] font-normal mb-[10px]">
-                  Career
+                  {content?.career?.label || "Career"}
                 </p>
-                <h1 className="text-white text-[56px] font-medium mb-[50px]">
-                  Education & Experience
+                <h1 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[50px]">
+                  {content?.career?.title || "Education & Experience"}
                 </h1>
-                <div className="item-career mb-[50px]">
-                  <div className="item-career-title">
-                    <h2 className="text-[#2EEBAA] text-[30px] font-medium mb-[10px]">
-                      March 2020 - Present
-                    </h2>
-                    <p className="text-white text-[18px] font-normal mb-[10px]">
-                      Freelance Designer
-                    </p>
-                  </div>
-                  <div className="item-career-content">
-                    <p className="text-[#999999] text-[18px] font-normal">
-                      I've done remote work for agencies, consulted for
-                      startups, and collaborated with talented people to create
-                      digital products for both business and consumer use.
-                    </p>
-                  </div>
-                </div>
-                <div className="item-career mb-[50px]">
-                  <div className="item-career-title">
-                    <h2 className="text-[#2EEBAA] text-[30px] font-medium mb-[10px]">
-                      March 2020 - Present
-                    </h2>
-                    <p className="text-white text-[18px] font-normal mb-[10px]">
-                      Freelance Designer
-                    </p>
-                  </div>
-                  <div className="item-career-content">
-                    <p className="text-[#999999] text-[18px] font-normal">
-                      I've done remote work for agencies, consulted for
-                      startups, and collaborated with talented people to create
-                      digital products for both business and consumer use.
-                    </p>
-                  </div>
-                </div>
-                <div className="item-career mb-[50px]">
-                  <div className="item-career-title">
-                    <h2 className="text-[#2EEBAA] text-[30px] font-medium mb-[10px]">
-                      March 2020 - Present
-                    </h2>
-                    <p className="text-white text-[18px] font-normal mb-[10px]">
-                      Freelance Designer
-                    </p>
-                  </div>
-                  <div className="item-career-content">
-                    <p className="text-[#999999] text-[18px] font-normal">
-                      I've done remote work for agencies, consulted for
-                      startups, and collaborated with talented people to create
-                      digital products for both business and consumer use.
-                    </p>
-                  </div>
-                </div>
-                <div className="item-career">
-                  <div className="item-career-title">
-                    <h2 className="text-[#2EEBAA] text-[30px] font-medium mb-[10px]">
-                      March 2020 - Present
-                    </h2>
-                    <p className="text-white text-[18px] font-normal mb-[10px]">
-                      Freelance Designer
-                    </p>
-                  </div>
-                  <div className="item-career-content">
-                    <p className="text-[#999999] text-[18px] font-normal">
-                      I've done remote work for agencies, consulted for
-                      startups, and collaborated with talented people to create
-                      digital products for both business and consumer use.
-                    </p>
-                  </div>
-                </div>
+                {content?.career?.items ? (
+                  content.career.items.map((item, index) => (
+                    <div key={index} className={`item-career ${index < content.career.items.length - 1 ? 'mb-[50px]' : ''}`}>
+                      <div className="item-career-title">
+                        <h2 className="text-[#2EEBAA] text-[30px] font-medium mb-[10px]">
+                          {item.period}
+                        </h2>
+                        <p className="text-white text-[18px] font-normal mb-[10px]">
+                          {item.title}
+                        </p>
+                      </div>
+                      <div className="item-career-content">
+                        <p className="text-[#999999] text-[18px] font-normal">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="item-career mb-[50px]">
+                      <div className="item-career-title">
+                        <h2 className="text-[#2EEBAA] text-[30px] font-medium mb-[10px]">
+                          March 2020 - Present
+                        </h2>
+                        <p className="text-white text-[18px] font-normal mb-[10px]">
+                          Freelance Designer
+                        </p>
+                      </div>
+                      <div className="item-career-content">
+                        <p className="text-[#999999] text-[18px] font-normal">
+                          I've done remote work for agencies, consulted for
+                          startups, and collaborated with talented people to create
+                          digital products for both business and consumer use.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="box-services my-[150px]" id="services">
+              <div className="box-services my-[100px] c1200:my-[150px]" id="services">
                 <p className="text-[#2EEBAA] text-[18px] font-normal mb-[10px]">
-                  Services
+                  {content?.services?.label || "Services"}
                 </p>
-                <h2 className="text-white text-[56px] font-medium mb-[50px]">
-                  My expertise and services
+                <h2 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[50px]">
+                  {content?.services?.title || "My expertise and services"}
                 </h2>
-                <div className="grid grid-cols-3 gap-[15px]">
-                  <div className="border-[#2EEBAA] border-[1px] border-solid rounded-[10px] p-[30px] text-center flex flex-col items-center justify-center">
-                    <h3 className="text-white text-[20px] font-medium mb-[10px]">
-                      UX/UI Design
-                    </h3>
-                    <p className="text-[#999999] text-[16px] font-normal">
-                      21 PROJECTS
-                    </p>
-                  </div>
-                  <div className="border-[#2EEBAA] border-[1px] border-solid rounded-[10px] p-[30px] text-center flex flex-col items-center justify-center">
-                    <h3 className="text-white text-[20px] font-medium mb-[10px]">
-                      Web Development
-                    </h3>
-                    <p className="text-[#999999] text-[16px] font-normal">
-                      12 PROJECTS
-                    </p>
-                  </div>
-                  <div className="border-[#2EEBAA] border-[1px] border-solid rounded-[10px] p-[30px] text-center flex flex-col items-center justify-center">
-                    <h3 className="text-white text-[20px] font-medium mb-[10px]">
-                      Brand Identity
-                    </h3>
-                    <p className="text-[#999999] text-[16px] font-normal">
-                      18 PROJECTS
-                    </p>
-                  </div>
+                <div className=" grid grid-col-1 c768:grid-cols-3 gap-[15px]">
+                  {content?.services?.items ? (
+                    content.services.items.map((item, index) => (
+                      <div key={index} className="border-[#2EEBAA] border-[1px] border-solid rounded-[10px] p-[30px] text-center flex flex-col items-center justify-center">
+                        <h3 className="text-white text-[20px] font-medium mb-[10px]">
+                          {item.title}
+                        </h3>
+                        <p className="text-[#999999] text-[16px] font-normal">
+                          {item.projects}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="border-[#2EEBAA] border-[1px] border-solid rounded-[10px] p-[30px] text-center flex flex-col items-center justify-center">
+                        <h3 className="text-white text-[20px] font-medium mb-[10px]">
+                          UX/UI Design
+                        </h3>
+                        <p className="text-[#999999] text-[16px] font-normal">
+                          21 PROJECTS
+                        </p>
+                      </div>
+                      <div className="border-[#2EEBAA] border-[1px] border-solid rounded-[10px] p-[30px] text-center flex flex-col items-center justify-center">
+                        <h3 className="text-white text-[20px] font-medium mb-[10px]">
+                          Web Development
+                        </h3>
+                        <p className="text-[#999999] text-[16px] font-normal">
+                          12 PROJECTS
+                        </p>
+                      </div>
+                      <div className="border-[#2EEBAA] border-[1px] border-solid rounded-[10px] p-[30px] text-center flex flex-col items-center justify-center">
+                        <h3 className="text-white text-[20px] font-medium mb-[10px]">
+                          Brand Identity
+                        </h3>
+                        <p className="text-[#999999] text-[16px] font-normal">
+                          18 PROJECTS
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="box-skills my-[150px]">
+              <div className="box-skills my-[100px] c1200:my-[150px]">
                 <p className="text-[#2EEBAA] text-[18px] font-normal mb-[10px]">
-                  Skills
+                  {content?.skills?.label || "Skills"}
                 </p>
-                <h2 className="text-white text-[56px] font-medium mb-[50px]">
-                  My skills and knowledge
+                <h2 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[50px]">
+                  {content?.skills?.title || "My skills and knowledge"}
                 </h2>
-                <div className="grid grid-cols-8 gap-[15px]">
-                  <Image
-                    className="grayscale"
-                    src="/images/program-icon.png"
-                    alt="program-icon"
-                    width={50}
-                    height={50}
-                  />
-                  <Image
-                    className="grayscale"
-                    src="/images/program-icon.png"
-                    alt="program-icon"
-                    width={50}
-                    height={50}
-                  />
-                  <Image
-                    className="grayscale"
-                    src="/images/program-icon.png"
-                    alt="program-icon"
-                    width={50}
-                    height={50}
-                  />
-                  <Image
-                    className="grayscale"
-                    src="/images/program-icon.png"
-                    alt="program-icon"
-                    width={50}
-                    height={50}
-                  />
-                  <Image
-                    className="grayscale"
-                    src="/images/program-icon.png"
-                    alt="program-icon"
-                    width={50}
-                    height={50}
-                  />
-                  <Image
-                    className="grayscale"
-                    src="/images/program-icon.png"
-                    alt="program-icon"
-                    width={50}
-                    height={50}
-                  />
-                  <Image
-                    className="grayscale"
-                    src="/images/program-icon.png"
-                    alt="program-icon"
-                    width={50}
-                    height={50}
-                  />
-                  <Image
-                    className="grayscale"
-                    src="/images/program-icon.png"
-                    alt="program-icon"
-                    width={50}
-                    height={50}
-                  />
+                <div className="grid grid-cols-5 c768:grid-cols-8 gap-[30px] c768:gap-[15px]">
+                  {content?.skills?.items ? (
+                    content.skills.items.map((item, index) => (
+                      <Image
+                        key={index}
+                        className="grayscale"
+                        src={item.icon || "/images/program-icon.png"}
+                        alt={item.alt || "program-icon"}
+                        width={50}
+                        height={50}
+                      />
+                    ))
+                  ) : (
+                    <>
+                      <Image
+                        className="grayscale"
+                        src="/images/program-icon.png"
+                        alt="program-icon"
+                        width={50}
+                        height={50}
+                      />
+                      <Image
+                        className="grayscale"
+                        src="/images/program-icon.png"
+                        alt="program-icon"
+                        width={50}
+                        height={50}
+                      />
+                      <Image
+                        className="grayscale"
+                        src="/images/program-icon.png"
+                        alt="program-icon"
+                        width={50}
+                        height={50}
+                      />
+                      <Image
+                        className="grayscale"
+                        src="/images/program-icon.png"
+                        alt="program-icon"
+                        width={50}
+                        height={50}
+                      />
+                      <Image
+                        className="grayscale"
+                        src="/images/program-icon.png"
+                        alt="program-icon"
+                        width={50}
+                        height={50}
+                      />
+                      <Image
+                        className="grayscale"
+                        src="/images/program-icon.png"
+                        alt="program-icon"
+                        width={50}
+                        height={50}
+                      />
+                      <Image
+                        className="grayscale"
+                        src="/images/program-icon.png"
+                        alt="program-icon"
+                        width={50}
+                        height={50}
+                      />
+                      <Image
+                        className="grayscale"
+                        src="/images/program-icon.png"
+                        alt="program-icon"
+                        width={50}
+                        height={50}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="box-portfolio my-[150px]" id="portfolio">
+              {/* <div className="box-portfolio my-[100px] c1200:my-[150px]" id="portfolio">
                 <p className="text-[#2EEBAA] text-[18px] font-normal mb-[10px]">
                   Portfolio
                 </p>
-                <h2 className="text-white text-[56px] font-medium mb-[50px]">
+                <h2 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[50px]">
                   Featured Projects
                 </h2>
                 <div className="card-image-banner mb-[15px]">
                   <Image
                     src="/images/project.png"
-                    className="h-[300px] object-cover rounded-[25px]"
+                    className="h-[250px] c768:h-[400] w-full c1200:h-[300px] object-cover rounded-[25px]"
                     alt="project"
                     width={820}
                     height={400}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-[15px]">
+                <div className="grid grid-cols-1 c768:grid-cols-2 gap-[15px]">
                   <div className="box-image-flex-item">
                     <Image
                       src="/images/project.png"
-                      className="h-[300px] object-cover rounded-[25px]"
+                      className="h-[250px] c768:h-[400] w-full c1200:h-[300px] object-cover rounded-[25px]"
                       alt="project"
                       width={400}
                       height={400}
@@ -415,19 +611,19 @@ export default function HomePage() {
                   <div className="box-image-flex-item">
                     <Image
                       src="/images/project.png"
-                      className="h-[300px] object-cover rounded-[25px]"
+                      className="h-[250px] c768:h-[400] w-full c1200:h-[300px] object-cover rounded-[25px]"
                       alt="project"
                       width={400}
                       height={400}
                     />
                   </div>
                 </div>
-              </div>
-              <div className="box-portfolio">
+              </div> */}
+              {/* <div className="box-portfolio">
                 <p className="text-[#2EEBAA] text-[18px] font-normal mb-[10px]">
                   Testimonial
                 </p>
-                <h2 className="text-white text-[56px] font-medium mb-[50px]">
+                <h2 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[50px]">
                   Trusted by many clients
                 </h2>
                 <Swiper
@@ -441,8 +637,8 @@ export default function HomePage() {
                   }}
                   className="swiper-portfolio"
                 >
-                  <SwiperSlide className="!w-[500px]">
-                    <div className="card-testimonial border-[#999999] border-[1px] border-solid rounded-[25px] p-[50px] h-full">
+                  <SwiperSlide className="w-full c768:!w-[500px]">
+                    <div className="card-testimonial border-[#999999] border-[1px] border-solid rounded-[25px] p-[20px] c768:p-[50px] h-full">
                       <div className="card-testimonial-author flex items-center gap-[15px]">
                         <Image
                           src="/images/avatar.png"
@@ -468,8 +664,8 @@ export default function HomePage() {
                       </p>
                     </div>
                   </SwiperSlide>
-                  <SwiperSlide className="!w-[500px]">
-                    <div className="card-testimonial border-[#999999] border-[1px] border-solid rounded-[25px] p-[50px] h-full">
+                  <SwiperSlide className="w-full c768:!w-[500px]">
+                    <div className="card-testimonial border-[#999999] border-[1px] border-solid rounded-[25px] p-[20px] c768:p-[50px] h-full">
                       <div className="card-testimonial-author flex items-center gap-[15px]">
                         <Image
                           src="/images/avatar.png"
@@ -493,8 +689,8 @@ export default function HomePage() {
                       </p>
                     </div>
                   </SwiperSlide>
-                  <SwiperSlide className="!w-[500px]">
-                    <div className="card-testimonial border-[#999999] border-[1px] border-solid rounded-[25px] p-[50px] h-full">
+                  <SwiperSlide className="w-full c768:!w-[500px]">
+                    <div className="card-testimonial border-[#999999] border-[1px] border-solid rounded-[25px] p-[20px] c768:p-[50px] h-full">
                       <div className="card-testimonial-author flex items-center gap-[15px]">
                         <Image
                           src="/images/avatar.png"
@@ -519,15 +715,15 @@ export default function HomePage() {
                     </div>
                   </SwiperSlide>
                 </Swiper>
-              </div>
-              <div className="box-brands my-[150px]">
+              </div> */}
+              {/* <div className="box-brands my-[100px] c1200:my-[150px]">
                 <p className="text-[#2EEBAA] text-[18px] font-normal mb-[10px]">
                   Brands
                 </p>
-                <h2 className="text-white text-[56px] font-medium mb-[50px]">
+                <h2 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[50px]">
                   Work with brands worldwide
                 </h2>
-                <div className="grid grid-cols-4 gap-[15px]">
+                <div className="grid grid-cols-2 c768:grid-cols-4 gap-[30px] c768:gap-[15px]">
                   <Image
                     className="grayscale"
                     src="/images/brand.png"
@@ -557,15 +753,15 @@ export default function HomePage() {
                     height={100}
                   />
                 </div>
-              </div>
-              <div className="box-contact my-[150px]" id="contact">
+              </div> */}
+              <div className="box-contact my-[100px] c1200:my-[50px]" id="contact">
                 <p className="text-[#2EEBAA] text-[18px] font-normal mb-[10px]">
-                  Contact
+                  {content?.contact?.label || "Contact"}
                 </p>
-                <h2 className="text-white text-[56px] font-medium mb-[50px]">
-                  Let's work together!
+                <h2 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[50px]">
+                  {content?.contact?.title || "Let's work together!"}
                 </h2>
-                <form className="w-full max-w-[700px] flex flex-col gap-[30px]">
+                <form className="w-full max-w-[100%] c1200:max-w-[700px] flex flex-col gap-[30px]">
                   <div className="grid grid-cols-2 gap-[30px]">
                     <input
                       type="text"
@@ -610,7 +806,7 @@ export default function HomePage() {
       <footer className="bg-[#1A1A1A] border-t border-[#999999] border-opacity-20 py-[50px]">
         <div className="container mx-auto max-w-[1200px] px-[50px]">
           <p className="text-[#999999] text-[14px] font-normal text-center">
-            © 2025 Jonathan. All rights reserved.
+            {content?.footer?.text || "© 2025 Jonathan. All rights reserved."}
           </p>
         </div>
       </footer>
