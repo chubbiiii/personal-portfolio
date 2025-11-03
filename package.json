@@ -12,6 +12,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@heroui/react": "^2.8.5",
+    "@vercel/edge-config": "^1.4.3",
     "aos": "^2.3.4",
     "autoprefixer": "^10.4.21",
     "bcryptjs": "^3.0.2",

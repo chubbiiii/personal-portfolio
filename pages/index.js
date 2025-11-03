@@ -14,6 +14,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import { get } from '@vercel/edge-config';
 import fs from 'fs';
 import path from 'path';
 
@@ -46,11 +47,88 @@ export async function getServerSideProps(context) {
     };
   }
 
-  // ถ้า login แล้ว ให้โหลด content
+  // ถ้า login แล้ว ให้โหลด content จาก Edge Config หรือ file system
   try {
-    const filePath = path.join(process.cwd(), 'data', 'content.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const content = JSON.parse(fileContents);
+    // ลองอ่าน content จาก Edge Config ก่อน
+    let content = null;
+    
+    try {
+      content = await get('content');
+    } catch (edgeConfigError) {
+      // ถ้า Edge Config ไม่ได้ setup หรือเกิด error ให้ fallback ไปใช้ file system
+      console.error('Edge Config Error in getServerSideProps:', {
+        message: edgeConfigError.message,
+        name: edgeConfigError.name,
+        stack: edgeConfigError.stack,
+        hasEdgeConfig: !!process.env.EDGE_CONFIG,
+        hasEdgeConfigId: !!process.env.EDGE_CONFIG_ID,
+        nodeEnv: process.env.NODE_ENV
+      });
+      
+      // ถ้าไม่มี Edge Config ให้อ่านจากไฟล์ (สำหรับ local development)
+      if (process.env.NODE_ENV !== 'production' || !process.env.EDGE_CONFIG) {
+        const filePath = path.join(process.cwd(), 'data', 'content.json');
+        if (fs.existsSync(filePath)) {
+          const fileContents = fs.readFileSync(filePath, 'utf8');
+          content = JSON.parse(fileContents);
+        }
+      }
+    }
+
+    // ถ้ายังไม่มีข้อมูลใน Edge Config หรือไฟล์ ให้ใช้ default content
+    if (!content) {
+      const defaultContent = {
+        avatar: {
+          avatarImage: "/images/avatar.png",
+          socialLinks: [],
+          buttonText: "Hire Me",
+          buttonLink: "#"
+        },
+        welcome: {
+          greeting: "Hello",
+          title: "Welcome",
+          description: ""
+        },
+        stats: {
+          years: "0",
+          projects: "0",
+          clients: "0"
+        },
+        about: {
+          label: "About",
+          title: "",
+          description: ""
+        },
+        career: {
+          label: "Career",
+          title: "",
+          items: []
+        },
+        services: {
+          label: "Services",
+          title: "",
+          items: []
+        },
+        skills: {
+          label: "Skills",
+          title: "",
+          items: []
+        },
+        contact: {
+          label: "Contact",
+          title: ""
+        },
+        footer: {
+          text: "© 2025. All rights reserved."
+        }
+      };
+
+      return {
+        props: {
+          content: defaultContent
+        }
+      };
+    }
 
     return {
       props: {
