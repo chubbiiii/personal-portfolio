@@ -1,4 +1,20 @@
-import { get } from '@vercel/edge-config';
+import fs from 'fs';
+import path from 'path';
+
+// ฟังก์ชันสำหรับอ่าน content จากไฟล์
+function getContent() {
+  try {
+    const filePath = path.join(process.cwd(), 'data', 'content.json');
+    if (fs.existsSync(filePath)) {
+      const fileContents = fs.readFileSync(filePath, 'utf8');
+      return JSON.parse(fileContents);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error reading content.json:', error);
+    throw error;
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -9,36 +25,32 @@ export default async function handler(req, res) {
   }
 
   try {
-    // อ่าน content จาก Edge Config
+    // อ่าน content จากไฟล์
     let content = null;
     try {
-      content = await get('content');
-    } catch (edgeConfigError) {
-      console.error('Edge Config Error Details:', {
-        message: edgeConfigError.message,
-        name: edgeConfigError.name,
-        stack: edgeConfigError.stack,
-        hasEdgeConfig: !!process.env.EDGE_CONFIG,
-        hasEdgeConfigId: !!process.env.EDGE_CONFIG_ID,
+      content = getContent();
+    } catch (error) {
+      console.error('Error reading content.json:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
         nodeEnv: process.env.NODE_ENV
       });
       
       return res.status(500).json({
         success: false,
-        message: 'เกิดข้อผิดพลาดในการดึงข้อมูลจาก Edge Config',
+        message: 'เกิดข้อผิดพลาดในการดึงข้อมูลจากไฟล์',
         error: {
-          message: edgeConfigError.message,
-          name: edgeConfigError.name,
+          message: error.message,
+          name: error.name,
           details: {
-            hasEdgeConfig: !!process.env.EDGE_CONFIG,
-            hasEdgeConfigId: !!process.env.EDGE_CONFIG_ID,
             nodeEnv: process.env.NODE_ENV
           }
         }
       });
     }
 
-    // ถ้ายังไม่มีข้อมูลใน Edge Config ให้ fallback ไปใช้ default content
+    // ถ้ายังไม่มีข้อมูลในไฟล์ ให้ fallback ไปใช้ default content
     if (!content) {
       const defaultContent = {
         avatar: {

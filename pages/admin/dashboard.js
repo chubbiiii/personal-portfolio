@@ -27,6 +27,147 @@ export async function getServerSideProps(context) {
   };
 }
 
+// Contact Submissions List Component
+function ContactSubmissionsList() {
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState({});
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchSubmissions();
+    };
+    
+    fetchData();
+    // // Refresh every 10 seconds
+    // const interval = setInterval(fetchData, 10000);
+    // return () => clearInterval(interval);
+  }, []);
+
+  const fetchSubmissions = async () => {
+    try {
+      const response = await fetch('/api/contact/list');
+      const data = await response.json();
+      if (data.success) {
+        setSubmissions(data.submissions || []);
+      }
+    } catch (error) {
+      console.error('Error fetching submissions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อความนี้?')) {
+      return;
+    }
+
+    setDeleting({ ...deleting, [id]: true });
+    try {
+      const response = await fetch(`/api/contact/delete?id=${id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        setSubmissions(submissions.filter(sub => sub.id !== id));
+        alert('ลบข้อความสำเร็จ');
+      } else {
+        alert('เกิดข้อผิดพลาด: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error deleting submission:', error);
+      alert('เกิดข้อผิดพลาดในการลบข้อความ');
+    } finally {
+      setDeleting({ ...deleting, [id]: false });
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="text-white text-center py-[50px]">
+        กำลังโหลด...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-[20px]">
+      <div className="flex justify-between items-center mb-[20px]">
+        <h2 className="text-white text-[24px] font-medium">Contact Submissions</h2>
+        <button
+          onClick={fetchSubmissions}
+          className="bg-[#2EEBAA] text-[#181818] px-[20px] py-[10px] rounded-[8px] font-medium hover:bg-[#26c293]"
+        >
+          รีเฟรช
+        </button>
+      </div>
+
+      {submissions.length === 0 ? (
+        <div className="text-[#999999] text-center py-[50px]">
+          ไม่มีข้อความติดต่อ
+        </div>
+      ) : (
+        <div className="space-y-[15px]">
+          {submissions.map((submission) => (
+            <div
+              key={submission.id}
+              className="bg-[#1E1E1E] border border-[#999999] rounded-[10px] p-[20px]"
+            >
+              <div className="flex justify-between flex-col c768:flex-row items-start mb-[15px]">
+                <div className="flex-1">
+                  <div className="flex c768:flex-row flex-col gap-[5px] c768:flex-col items-start c768:items-center c768:gap-[15px] mb-[10px]">
+                    <h3 className="text-white text-[18px] font-medium">
+                      {submission.fullname}
+                    </h3>
+                    <span className="text-[#999999] text-[14px]">
+                      {formatDate(submission.timestamp)}
+                    </span>
+                  </div>
+                  <div className="space-y-[5px] text-[#999999] text-[14px]">
+                    <p>
+                      <span className="text-[#2EEBAA]">Email:</span> {submission.email}
+                    </p>
+                    {submission.phone && (
+                      <p>
+                        <span className="text-[#2EEBAA]">Phone:</span> {submission.phone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDelete(submission.id)}
+                  disabled={deleting[submission.id]}
+                  className="bg-[#ff4444] text-white px-[15px] py-[8px] rounded-[8px] text-[14px] hover:bg-[#cc0000] disabled:opacity-50 disabled:cursor-not-allowed c768:ml-[15px] ml-0 mt-[10px] c768:mt-0"
+                >
+                  {deleting[submission.id] ? 'กำลังลบ...' : 'ลบ'}
+                </button>
+              </div>
+              <div className="bg-[#1A1A1A] rounded-[8px] p-[15px]">
+                <p className="text-white text-[14px] whitespace-pre-wrap">
+                  {submission.message}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [content, setContent] = useState(null);
@@ -102,7 +243,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#1E1E1E] py-[50px] px-[20px]">
       <div className="container mx-auto max-w-[1200px]">
-        <div className="flex justify-between items-center mb-[40px]">
+        <div className="flex gap-[20px] c768:gap-0 c768:flex-row flex-col justify-between items-start c768:items-center mb-[40px]">
           <h1 className="text-white text-[32px] font-medium">Admin Dashboard</h1>
           <div className="flex items-center gap-[15px]">
             <a
@@ -137,6 +278,16 @@ export default function AdminDashboard() {
               {section.charAt(0).toUpperCase() + section.slice(1)}
             </button>
           ))}
+          <button
+            onClick={() => setActiveSection('submissions')}
+            className={`px-[20px] py-[10px] rounded-[8px] transition-colors ${
+              activeSection === 'submissions'
+                ? 'bg-[#2EEBAA] text-[#181818]'
+                : 'bg-[#333] text-white hover:bg-[#444]'
+            }`}
+          >
+            Contact Submissions
+          </button>
         </div>
 
         {/* Content Editor */}
@@ -167,6 +318,9 @@ export default function AdminDashboard() {
           )}
           {activeSection === 'skills' && (
             <SkillsEditor content={content.skills} onSave={(data) => handleUpdate('skills', data)} saving={saving} />
+          )}
+          {activeSection === 'submissions' && (
+            <ContactSubmissionsList />
           )}
         </div>
       </div>

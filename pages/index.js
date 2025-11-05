@@ -14,9 +14,25 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import { get } from '@vercel/edge-config';
 import fs from 'fs';
 import path from 'path';
+
+// ฟังก์ชันสำหรับอ่าน content จากไฟล์
+function getContent() {
+  try {
+    const filePath = path.join(process.cwd(), 'data', 'content.json');
+    if (fs.existsSync(filePath)) {
+      const fileContents = fs.readFileSync(filePath, 'utf8');
+      return JSON.parse(fileContents);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error reading content.json:', {
+      message: error.message,
+    });
+    return null;
+  }
+}
 
 export async function getServerSideProps(context) {
   const { req } = context;
@@ -47,35 +63,12 @@ export async function getServerSideProps(context) {
     };
   }
 
-  // ถ้า login แล้ว ให้โหลด content จาก Edge Config หรือ file system
+  // ถ้า login แล้ว ให้โหลด content จากไฟล์
   try {
-    // ลองอ่าน content จาก Edge Config ก่อน
-    let content = null;
-    
-    try {
-      content = await get('content');
-    } catch (edgeConfigError) {
-      // ถ้า Edge Config ไม่ได้ setup หรือเกิด error ให้ fallback ไปใช้ file system
-      console.error('Edge Config Error in getServerSideProps:', {
-        message: edgeConfigError.message,
-        name: edgeConfigError.name,
-        stack: edgeConfigError.stack,
-        hasEdgeConfig: !!process.env.EDGE_CONFIG,
-        hasEdgeConfigId: !!process.env.EDGE_CONFIG_ID,
-        nodeEnv: process.env.NODE_ENV
-      });
-      
-      // ถ้าไม่มี Edge Config ให้อ่านจากไฟล์ (สำหรับ local development)
-      if (process.env.NODE_ENV !== 'production' || !process.env.EDGE_CONFIG) {
-        const filePath = path.join(process.cwd(), 'data', 'content.json');
-        if (fs.existsSync(filePath)) {
-          const fileContents = fs.readFileSync(filePath, 'utf8');
-          content = JSON.parse(fileContents);
-        }
-      }
-    }
+    // อ่าน content จากไฟล์
+    const content = getContent();
 
-    // ถ้ายังไม่มีข้อมูลใน Edge Config หรือไฟล์ ให้ใช้ default content
+    // ถ้ายังไม่มีข้อมูลในไฟล์ ให้ใช้ default content
     if (!content) {
       const defaultContent = {
         avatar: {
@@ -143,6 +136,107 @@ export async function getServerSideProps(context) {
       }
     };
   }
+}
+
+// Contact Form Component
+function ContactForm() {
+  const [formData, setFormData] = useState({
+    fullname: '',
+    email: '',
+    phone: '',
+    message: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      const response = await fetch('/api/contact/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setSubmitStatus({ type: 'success', message: result.message });
+        setFormData({ fullname: '', email: '', phone: '', message: '' });
+      } else {
+        setSubmitStatus({ type: 'error', message: result.message });
+      }
+    } catch (error) {
+      setSubmitStatus({ type: 'error', message: 'เกิดข้อผิดพลาดในการส่งข้อความ กรุณาลองใหม่อีกครั้ง' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form 
+      onSubmit={handleSubmit}
+      className="w-full max-w-[100%] c1200:max-w-[700px] flex flex-col gap-[30px]"
+    >
+      {submitStatus && (
+        <div className={`p-[15px] rounded-[10px] ${
+          submitStatus.type === 'success' 
+            ? 'bg-[#2EEBAA] text-[#181818]' 
+            : 'bg-[#ff4444] text-white'
+        }`}>
+          {submitStatus.message}
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-[30px]">
+        <input
+          type="text"
+          name="fullname"
+          placeholder="Full Name"
+          value={formData.fullname}
+          onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
+          className="bg-transparent border-[1px] border-[#999999] rounded-[15px] px-[25px] py-[18px] text-white text-[18px] focus:outline-none focus:border-[#2EEBAA] col-span-2 md:col-span-1"
+          required
+        />
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          className="bg-transparent border-[1px] border-[#999999] rounded-[15px] px-[25px] py-[18px] text-white text-[18px] focus:outline-none focus:border-[#2EEBAA] col-span-2 md:col-span-1"
+          required
+        />
+        <input
+          type="tel"
+          name="phone"
+          placeholder="Phone"
+          value={formData.phone}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          className="bg-transparent border-[1px] border-[#999999] rounded-[15px] px-[25px] py-[18px] text-white text-[18px] focus:outline-none focus:border-[#2EEBAA] col-span-2 md:col-span-2"
+        />
+      </div>
+      <textarea
+        name="message"
+        placeholder="Your message"
+        value={formData.message}
+        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+        className="bg-transparent border-[1px] border-[#999999] rounded-[15px] px-[25px] py-[18px] min-h-[140px] text-white text-[18px] focus:outline-none focus:border-[#2EEBAA]"
+        required
+      />
+      <button
+        type="submit"
+        disabled={submitting}
+        className="bg-[#2EEBAA] text-[#181818] text-[20px] font-bold rounded-[15px] px-[50px] py-[15px] min-w-[180px] w-fit self-end transition hover:bg-[#26c293] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {submitting ? 'กำลังส่ง...' : 'Send'}
+      </button>
+    </form>
+  );
 }
 
 export default function HomePage({ content }) {
@@ -839,43 +933,7 @@ export default function HomePage({ content }) {
                 <h2 className="text-white text-[32px] c1200:text-[56px] font-medium mb-[50px]">
                   {content?.contact?.title || "Let's work together!"}
                 </h2>
-                <form className="w-full max-w-[100%] c1200:max-w-[700px] flex flex-col gap-[30px]">
-                  <div className="grid grid-cols-2 gap-[30px]">
-                    <input
-                      type="text"
-                      name="fullname"
-                      placeholder="Full Name"
-                      className="bg-transparent border-[1px] border-[#999999] rounded-[15px] px-[25px] py-[18px] text-white text-[18px] focus:outline-none focus:border-[#2EEBAA] col-span-2 md:col-span-1"
-                      required
-                    />
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Email"
-                      className="bg-transparent border-[1px] border-[#999999] rounded-[15px] px-[25px] py-[18px] text-white text-[18px] focus:outline-none focus:border-[#2EEBAA] col-span-2 md:col-span-1"
-                      required
-                    />
-                    <input
-                      type="tel"
-                      name="phone"
-                      placeholder="Phone"
-                      className="bg-transparent border-[1px] border-[#999999] rounded-[15px] px-[25px] py-[18px] text-white text-[18px] focus:outline-none focus:border-[#2EEBAA] col-span-2 md:col-span-2"
-                      required
-                    />
-                  </div>
-                  <textarea
-                    name="message"
-                    placeholder="Your message"
-                    className="bg-transparent border-[1px] border-[#999999] rounded-[15px] px-[25px] py-[18px] min-h-[140px] text-white text-[18px] focus:outline-none focus:border-[#2EEBAA]"
-                    required
-                  />
-                  <button
-                    type="submit"
-                    className="bg-[#2EEBAA] text-[#181818] text-[20px] font-bold rounded-[15px] px-[50px] py-[15px] min-w-[180px] w-fit self-end transition hover:bg-[#26c293]"
-                  >
-                    Send
-                  </button>
-                </form>
+                <ContactForm />
               </div>
             </div>
           </div>
